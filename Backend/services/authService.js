@@ -1,4 +1,4 @@
-const supabase = require("../config/supabase");
+const supabase = require("../config/supabaseClient");
 
 const registerUser = async ({ name, email, password, role }) => {
   const { data, error } = await supabase.auth.admin.createUser({
@@ -7,9 +7,7 @@ const registerUser = async ({ name, email, password, role }) => {
     email_confirm: true,
   });
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
   const { data: user, error: userError } = await supabase
     .from("users")
@@ -23,7 +21,6 @@ const registerUser = async ({ name, email, password, role }) => {
     .single();
 
   if (userError) {
-    // If profile creation fails, remove the auth account
     await supabase.auth.admin.deleteUser(data.user.id);
     throw userError;
   }
@@ -37,11 +34,30 @@ const loginUser = async ({ email, password }) => {
     password,
   });
 
-  if (error) {
-    throw error;
+  if (error) throw error;
+
+  if (!data?.user) {
+    throw new Error("Login succeeded but no user was returned");
   }
 
-  return data;
+  const { data: profile, error: profileError } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", data.user.id)
+    .maybeSingle();
+
+  if (profileError) throw profileError;
+
+  if (!profile) {
+    throw new Error(
+      "User profile not found in users table. Please register again."
+    );
+  }
+
+  return {
+    session: data.session,
+    user: profile,
+  };
 };
 
 module.exports = {

@@ -1,20 +1,27 @@
 import { useState } from "react";
+import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+
 import { loginUser } from "../../services/authServices";
+import { setSession, setUser } from "../../store/authSlice";
 
 function LoginForm() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
-    });
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -24,18 +31,24 @@ function LoginForm() {
     setLoading(true);
 
     try {
+      console.log("Sending LOGIN POST request...");
+
       const data = await loginUser(formData);
 
-      // Temporarily store session
+      console.log("Login response:", data);
+
       localStorage.setItem(
         "jobconnect_session",
         JSON.stringify(data.session)
       );
 
-      console.log("Logged in user:", data.user);
+      dispatch(setSession(data.session));
+      dispatch(setUser(data.user));
 
-      alert("Login successful!");
+      navigate("/dashboard");
     } catch (err) {
+      console.error("Login error:", err);
+
       setError(
         err.response?.data?.message ||
           "Invalid email or password."
@@ -46,7 +59,7 @@ function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl ring-1 ring-slate-200">
+    <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
       <div className="mb-8 text-center">
         <h2 className="text-3xl font-bold text-slate-900">
           Welcome back
@@ -57,7 +70,10 @@ function LoginForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-5"
+      >
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-700">
             Email
@@ -66,11 +82,11 @@ function LoginForm() {
           <input
             type="email"
             name="email"
-            placeholder="you@example.com"
             value={formData.email}
             onChange={handleChange}
+            placeholder="you@example.com"
             required
-            className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="w-full rounded-lg border border-slate-300 px-4 py-3"
           />
         </div>
 
@@ -82,11 +98,11 @@ function LoginForm() {
           <input
             type="password"
             name="password"
-            placeholder="Enter your password"
             value={formData.password}
             onChange={handleChange}
+            placeholder="Enter your password"
             required
-            className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="w-full rounded-lg border border-slate-300 px-4 py-3"
           />
         </div>
 
@@ -99,7 +115,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
+          className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
         >
           {loading ? "Logging in..." : "Login"}
         </button>
@@ -109,7 +125,7 @@ function LoginForm() {
         Don't have an account?{" "}
         <a
           href="/register"
-          className="font-semibold text-blue-600 hover:text-blue-700"
+          className="font-semibold text-blue-600"
         >
           Create one
         </a>
