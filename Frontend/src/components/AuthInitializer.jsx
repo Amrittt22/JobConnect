@@ -1,6 +1,9 @@
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 
+import { supabase } from "../services/supabase";
+import { getMe } from "../services/authServices";
+
 import {
   setSession,
   setUser,
@@ -8,27 +11,23 @@ import {
   logout,
 } from "../store/authSlice";
 
-import { getMe } from "../services/authServices";
-
 function AuthInitializer({ children }) {
   const dispatch = useDispatch();
 
   useEffect(() => {
+    let mounted = true;
+
     const initializeAuth = async () => {
       try {
-        const savedSession = localStorage.getItem(
-          "jobconnect_session"
-        );
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-        if (!savedSession) {
-          dispatch(setLoading(false));
-          return;
-        }
+        if (!mounted) return;
 
-        const session = JSON.parse(savedSession);
-
-        if (!session?.access_token) {
+        if (!session) {
           dispatch(logout());
+          dispatch(setLoading(false));
           return;
         }
 
@@ -36,17 +35,52 @@ function AuthInitializer({ children }) {
 
         const data = await getMe(session.access_token);
 
+        if (!mounted) return;
+
         dispatch(setUser(data.user));
       } catch (error) {
-        console.error("Session restore failed:", error);
+        console.error("Auth initialization failed:", error);
 
-        dispatch(logout());
+        if (mounted) {
+          dispatch(logout());
+        }
       } finally {
-        dispatch(setLoading(false));
+        if (mounted) {
+          dispatch(setLoading(false));
+        }
       }
     };
 
     initializeAuth();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
+
+      if (!session) {
+        dispatch(logout());
+        dispatch(setLoading(false));
+        return;
+      }
+
+      dispatch(setSession(session));
+
+      try {
+        const data = await getMe(session.access_token);
+
+        if (mounted) {
+          dispatch(setUser(data.user));
+        }
+      } catch (error) {
+        console.error("Failed to load user:", error);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [dispatch]);
 
   return children;

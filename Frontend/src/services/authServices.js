@@ -1,15 +1,7 @@
 import axios from "axios";
+import { supabase } from "./supabase";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-export const loginUser = async (credentials) => {
-  const response = await axios.post(
-    `${API_URL}/api/auth/login`,
-    credentials
-  );
-
-  return response.data;
-};
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const registerUser = async (userData) => {
   const response = await axios.post(
@@ -18,6 +10,19 @@ export const registerUser = async (userData) => {
   );
 
   return response.data;
+};
+
+export const loginUser = async ({ email, password }) => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 };
 
 export const getMe = async (token) => {
