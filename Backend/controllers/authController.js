@@ -1,13 +1,26 @@
 const authService = require("../services/authService");
-const supabase = require("../config/supabaseClient");
 
 const register = async (req, res, next) => {
   try {
-    const user = await authService.registerUser(req.body);
+    const { name, email, password, role } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email and password are required",
+      });
+    }
+
+    const user = await authService.registerUser({
+      name,
+      email,
+      password,
+      role,
+    });
 
     res.status(201).json({
       success: true,
-      message: "Registration successful. You can now log in.",
+      message: "User registered successfully",
       user,
     });
   } catch (error) {
@@ -17,52 +30,42 @@ const register = async (req, res, next) => {
 
 const login = async (req, res, next) => {
   try {
-    const session = await authService.loginUser(req.body);
-    const { data: user, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", session.user.id)
-      .single();
+    const { email, password } = req.body;
 
-    if (error) {
-      throw error;
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
     }
+
+    const data = await authService.loginUser({
+      email,
+      password,
+    });
 
     res.status(200).json({
       success: true,
-      session,
-      user,
+      message: "Login successful",
+      session: data.session,
     });
   } catch (error) {
     next(error);
   }
 };
 
-const getMe = async (req, res, next) => {
-  try {
-    const { data: user, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", req.user.id)
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    res.status(200).json({
-      success: true,
-      user,
-    });
-  } catch (error) {
-    next(error);
-  }
+const getMe = async (req, res) => {
+  res.status(200).json({
+    success: true,
+    user: req.user,
+  });
 };
+
 const logout = async (req, res, next) => {
   try {
     res.status(200).json({
       success: true,
-      message: "Logged out successfully",
+      message: "Logout successful",
     });
   } catch (error) {
     next(error);

@@ -35,7 +35,6 @@ function LoginForm() {
 
       // Login using Supabase through authServices
       const data = await loginUser(formData);
-
       console.log("Login response:", data);
 
       if (!data.session) {

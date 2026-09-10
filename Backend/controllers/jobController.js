@@ -1,0 +1,48 @@
+const jobService = require("../services/jobServices");
+
+const createJob = async (req, res, next) => {
+  try {
+    const {
+      title,
+      description,
+      companyId,
+      location,
+      salaryMin,
+      salaryMax,
+      skillsRequired,
+      jobType,
+    } = req.body;
+
+    if (!title || !description || !companyId || !jobType) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Title, description, company and job type are required",
+      });
+    }
+
+    const job = await jobService.createJob({
+      title,
+      description,
+      companyId,
+      postedById: req.authUser.id,
+      location,
+      salaryMin,
+      salaryMax,
+      skillsRequired,
+      jobType,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Job created successfully",
+      job,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  createJob,
+};
