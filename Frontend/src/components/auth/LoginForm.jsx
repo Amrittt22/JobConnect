@@ -49,6 +49,7 @@ function LoginForm() {
       );
 
       console.log("User profile:", userData);
+      
 
       // Save session and user in Redux
       dispatch(setSession(data.session));

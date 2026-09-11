@@ -11,16 +11,6 @@ const app = express();
 
 const PORT = process.env.PORT || 5000;
 
-
-app.use((err, req, res, next) => {
-  console.error(err);
-
-  res.status(err.statusCode || 500).json({
-    success: false,
-    message: err.message || "Internal server error",
-  });
-});
-
 // Middleware
 app.use(cors());
 app.use(helmet());
@@ -28,12 +18,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/companies", companyRoutes);
-
 
 // Health check
 app.get("/", (req, res) => {

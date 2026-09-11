@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -7,6 +7,10 @@ function PostJob() {
   const navigate = useNavigate();
 
   const { session } = useSelector((state) => state.auth);
+
+
+  const [companies, setCompanies] = useState([]);
+  const [companiesLoading, setCompaniesLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -23,6 +27,38 @@ function PostJob() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/companies/my`,
+          {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }
+        );
+
+        console.log("COMPANIES:", response.data.companies);
+
+        setCompanies(response.data.companies);
+      } catch (err) {
+        console.error("Failed to load companies:", err);
+
+        setError(
+          err.response?.data?.message ||
+            "Failed to load companies"
+        );
+      } finally {
+        setCompaniesLoading(false);
+      }
+    };
+
+    if (session) {
+      fetchCompanies();
+    }
+  }, [session]);
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -36,6 +72,8 @@ function PostJob() {
     setError("");
     setSuccess("");
     setLoading(true);
+
+    console.log("FORM DATA:", formData);
 
     try {
       const response = await axios.post(
@@ -69,6 +107,7 @@ function PostJob() {
       }, 1000);
     } catch (err) {
       console.error("Job creation error:", err);
+      console.log("Backend response:", err.response?.data);
 
       setError(
         err.response?.data?.message ||
@@ -120,13 +159,21 @@ function PostJob() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-6"
+          >
+            {/* Job Title */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
+              <label
+                htmlFor="title"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
                 Job Title
               </label>
 
               <input
+                id="title"
                 type="text"
                 name="title"
                 value={formData.title}
@@ -137,12 +184,17 @@ function PostJob() {
               />
             </div>
 
+            {/* Description */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
+              <label
+                htmlFor="description"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
                 Description
               </label>
 
               <textarea
+                id="description"
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
@@ -153,32 +205,71 @@ function PostJob() {
               />
             </div>
 
+            {/* Company */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Company ID
+              <label
+                htmlFor="companyId"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
+                Company
               </label>
 
-              <input
-                type="text"
-                name="companyId"
-                value={formData.companyId}
-                onChange={handleChange}
-                placeholder="Enter your company UUID"
-                required
-                className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-              />
+              {companiesLoading ? (
+                <p className="text-sm text-slate-500">
+                  Loading companies...
+                </p>
+              ) : companies.length === 0 ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                  <p className="text-sm text-amber-700">
+                    You don't have a company yet.
+                  </p>
 
-              <p className="mt-1 text-xs text-slate-400">
-                We'll replace this with a company selector later.
-              </p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate("/recruiter/create-company")
+                    }
+                    className="mt-2 text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+                  >
+                    Create a company
+                  </button>
+                </div>
+              ) : (
+                <select
+                  id="companyId"
+                  name="companyId"
+                  value={formData.companyId}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                >
+                  <option value="">
+                    Select a company
+                  </option>
+
+                  {companies.map((company) => (
+                    <option
+                      key={company.id}
+                      value={company.id}
+                    >
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
+            {/* Location */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
+              <label
+                htmlFor="location"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
                 Location
               </label>
 
               <input
+                id="location"
                 type="text"
                 name="location"
                 value={formData.location}
@@ -188,13 +279,18 @@ function PostJob() {
               />
             </div>
 
+            {/* Salary */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
+                <label
+                  htmlFor="salaryMin"
+                  className="mb-2 block text-sm font-medium text-slate-700"
+                >
                   Minimum Salary
                 </label>
 
                 <input
+                  id="salaryMin"
                   type="number"
                   name="salaryMin"
                   value={formData.salaryMin}
@@ -206,11 +302,15 @@ function PostJob() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
+                <label
+                  htmlFor="salaryMax"
+                  className="mb-2 block text-sm font-medium text-slate-700"
+                >
                   Maximum Salary
                 </label>
 
                 <input
+                  id="salaryMax"
                   type="number"
                   name="salaryMax"
                   value={formData.salaryMax}
@@ -222,12 +322,17 @@ function PostJob() {
               </div>
             </div>
 
+            {/* Skills */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
+              <label
+                htmlFor="skillsRequired"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
                 Required Skills
               </label>
 
               <input
+                id="skillsRequired"
                 type="text"
                 name="skillsRequired"
                 value={formData.skillsRequired}
@@ -241,25 +346,42 @@ function PostJob() {
               </p>
             </div>
 
+            {/* Job Type */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
+              <label
+                htmlFor="jobType"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
                 Job Type
               </label>
 
               <select
+                id="jobType"
                 name="jobType"
                 value={formData.jobType}
                 onChange={handleChange}
                 required
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
               >
-                <option value="FULL_TIME">Full Time</option>
-                <option value="PART_TIME">Part Time</option>
-                <option value="INTERNSHIP">Internship</option>
-                <option value="CONTRACT">Contract</option>
+                <option value="FULL_TIME">
+                  Full Time
+                </option>
+
+                <option value="PART_TIME">
+                  Part Time
+                </option>
+
+                <option value="INTERNSHIP">
+                  Internship
+                </option>
+
+                <option value="CONTRACT">
+                  Contract
+                </option>
               </select>
             </div>
 
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
