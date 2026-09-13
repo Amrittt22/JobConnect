@@ -150,10 +150,42 @@ const deleteJob = async (jobId, recruiterId) => {
 
   return true;
 };
+const getAllJobs = async (search,location,jobType,minSalary) => {
+  let query = supabase
+    .from("jobs")
+    .select(`
+      *,
+      companies (
+        id,
+        name,
+        logoUrl
+      )
+    `)
+    .eq("status", "OPEN");
 
+  if (search) {
+    query = query.ilike("title", `%${search}%`);
+  }
+  if(location){
+    query=query.ilike("location", `%${location}%`);
+  }
+  if(jobType){
+    query=query.eq("jobType", jobType);
+  }
+  if(minSalary){
+    query=query.gte("salaryMin", minSalary);
+  }
+  const { data, error } = await query
+    .order("createdAt", { ascending: false });
+
+  if (error) throw error;
+
+  return data;
+};
 module.exports = {
   createJob,
   getRecruiterJobs,
   updateJob,
   deleteJob,
+  getAllJobs,
 };

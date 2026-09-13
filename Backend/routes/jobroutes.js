@@ -1,6 +1,6 @@
 const express = require("express");
 
-const { createJob , getRecruiterJobs , updateJob , deleteJob} = require("../controllers/jobController");
+const { createJob , getRecruiterJobs , updateJob , deleteJob , getAllJobs} = require("../controllers/jobController");
 
 const authMiddleware = require("../middleware/authMiddleware");
 const authorizeRoles = require("../middleware/roleMiddleware");
@@ -14,7 +14,12 @@ router.post(
   authorizeRoles("RECRUITER"),
   createJob
 );
-  
+
+router.get(
+  "/",
+  getAllJobs
+);
+
 router.get(
   "/my",
   authMiddleware,

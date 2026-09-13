@@ -119,10 +119,24 @@ const deleteJob = async (req, res, next) => {
     next(error);
   }
 };
+const getAllJobs = async (req, res, next) => {
+  try {
+    const { search , location , jobType , minSalary } = req.query;
 
+    const jobs = await jobService.getAllJobs(search,location,jobType,minSalary);
+
+    res.status(200).json({
+      success: true,
+      jobs,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 module.exports = {
   createJob,
   getRecruiterJobs,
   updateJob,
   deleteJob,
+  getAllJobs,
 };

@@ -11,6 +11,7 @@ import CreateCompany from "./pages/CreateCompany";
 import ManageJobs from "./pages/ManageJobs";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
 import EditJob from "./pages/EditJob";
+import JobDetails from "./pages/JobDetails";
 function App() {
   return (
     <Routes>
@@ -23,6 +24,8 @@ function App() {
       {/* JobSeeker Routes */}
       <Route element={<RoleProtectedRoute allowedRoles={["JOBSEEKER"]} />}>
         <Route path="/jobseeker/dashboard" element={<JobSeekerDashboard />} />
+
+        <Route path="/jobseeker/jobs/:id" element={<JobDetails />} />
       </Route>
 
       {/* Recruiter Routes */}
