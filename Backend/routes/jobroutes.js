@@ -1,6 +1,6 @@
 const express = require("express");
 
-const { createJob , getRecruiterJobs , updateJob } = require("../controllers/jobController");
+const { createJob , getRecruiterJobs , updateJob , deleteJob} = require("../controllers/jobController");
 
 const authMiddleware = require("../middleware/authMiddleware");
 const authorizeRoles = require("../middleware/roleMiddleware");
@@ -27,6 +27,13 @@ router.put(
   authMiddleware,
   authorizeRoles("RECRUITER"),
   updateJob
+);
+
+router.delete(
+  "/:id",
+  authMiddleware,
+  authorizeRoles("RECRUITER"),
+  deleteJob
 );
 
 module.exports = router;

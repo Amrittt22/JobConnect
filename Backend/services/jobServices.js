@@ -124,9 +124,36 @@ const updateJob = async (
 
   return data;
 };
+const deleteJob = async (jobId, recruiterId) => {
+  const { data: existingJob, error: findError } = await supabase
+    .from("jobs")
+    .select("id")
+    .eq("id", jobId)
+    .eq("postedById", recruiterId)
+    .single();
+
+  if (findError || !existingJob) {
+    const error = new Error(
+      "You are not authorized to delete this job"
+    );
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const { error } = await supabase
+    .from("jobs")
+    .delete()
+    .eq("id", jobId)
+    .eq("postedById", recruiterId);
+
+  if (error) throw error;
+
+  return true;
+};
 
 module.exports = {
   createJob,
   getRecruiterJobs,
   updateJob,
+  deleteJob,
 };

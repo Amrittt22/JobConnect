@@ -102,9 +102,27 @@ const updateJob = async (req, res, next) => {
     next(error);
   }
 };
+const deleteJob = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    await jobService.deleteJob(
+      id,
+      req.authUser.id
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Job deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 module.exports = {
   createJob,
   getRecruiterJobs,
   updateJob,
+  deleteJob,
 };

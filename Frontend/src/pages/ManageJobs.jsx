@@ -39,6 +39,28 @@ function ManageJobs() {
     }
   }, [session]);
 
+  const handleDelete = async (jobId) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this job?",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/jobs/${jobId}`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      setJobs((currentJobs) => currentJobs.filter((job) => job.id !== jobId));
+    } catch (err) {
+      console.error("Failed to delete job:", err);
+
+      setError(err.response?.data?.message || "Failed to delete job");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-100">
       {/* Header */}
@@ -161,7 +183,7 @@ function ManageJobs() {
                     )}
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex items-start gap-2">
                     <button
                       onClick={() => navigate(`/recruiter/edit-job/${job.id}`)}
                       className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
@@ -170,10 +192,10 @@ function ManageJobs() {
                     </button>
 
                     <button
-                      onClick={() => console.log("Selected job:", job)}
-                      className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      onClick={() => handleDelete(job.id)}
+                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
                     >
-                      View
+                      Delete
                     </button>
                   </div>
                 </div>
