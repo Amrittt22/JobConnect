@@ -2,48 +2,118 @@ import { Routes, Route } from "react-router-dom";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+
 import JobSeekerDashboard from "./pages/JobSeekerDashboard";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+
 import Unauthorized from "./pages/Unauthorized";
+
 import PostJob from "./pages/Postjob";
 import CreateCompany from "./pages/CreateCompany";
 import ManageJobs from "./pages/ManageJobs";
-import RoleProtectedRoute from "./components/RoleProtectedRoute";
 import EditJob from "./pages/EditJob";
+
 import JobDetails from "./pages/JobDetails";
+import Applicants from "./pages/Applicants";
+
+import RoleProtectedRoute from "./components/RoleProtectedRoute";
+
 function App() {
   return (
     <Routes>
+      {/* Public Routes */}
       <Route path="/login" element={<Login />} />
 
       <Route path="/register" element={<Register />} />
 
-      <Route path="/unauthorized" element={<Unauthorized />} />
+      <Route
+        path="/unauthorized"
+        element={<Unauthorized />}
+      />
 
-      {/* JobSeeker Routes */}
-      <Route element={<RoleProtectedRoute allowedRoles={["JOBSEEKER"]} />}>
-        <Route path="/jobseeker/dashboard" element={<JobSeekerDashboard />} />
+      {/* =========================
+          JOB SEEKER ROUTES
+      ========================= */}
+      <Route
+        element={
+          <RoleProtectedRoute
+            allowedRoles={["JOBSEEKER"]}
+          />
+        }
+      >
+        <Route
+          path="/jobseeker/dashboard"
+          element={<JobSeekerDashboard />}
+        />
 
-        <Route path="/jobseeker/jobs/:id" element={<JobDetails />} />
+        <Route
+          path="/jobseeker/jobs/:id"
+          element={<JobDetails />}
+        />
       </Route>
 
-      {/* Recruiter Routes */}
-      <Route element={<RoleProtectedRoute allowedRoles={["RECRUITER"]} />}>
-        <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
+      {/* =========================
+          RECRUITER ROUTES
+      ========================= */}
+      <Route
+        element={
+          <RoleProtectedRoute
+            allowedRoles={["RECRUITER"]}
+          />
+        }
+      >
+        {/* Recruiter Dashboard */}
+        <Route
+          path="/recruiter/dashboard"
+          element={<RecruiterDashboard />}
+        />
 
-        <Route path="/recruiter/create-company" element={<CreateCompany />} />
+        {/* Create Company */}
+        <Route
+          path="/recruiter/create-company"
+          element={<CreateCompany />}
+        />
 
-        <Route path="/recruiter/post-job" element={<PostJob />} />
+        {/* Post Job */}
+        <Route
+          path="/recruiter/post-job"
+          element={<PostJob />}
+        />
 
-        <Route path="/recruiter/jobs" element={<ManageJobs />} />
+        {/* Manage Jobs */}
+        <Route
+          path="/recruiter/jobs"
+          element={<ManageJobs />}
+        />
 
-        <Route path="/recruiter/edit-job/:id" element={<EditJob />} />
+        {/* Edit Job */}
+        <Route
+          path="/recruiter/edit-job/:id"
+          element={<EditJob />}
+        />
+
+        {/* Applicants */}
+        <Route
+          path="/recruiter/jobs/:jobId/applicants"
+          element={<Applicants />}
+        />
       </Route>
 
-      {/* Admin Routes */}
-      <Route element={<RoleProtectedRoute allowedRoles={["ADMIN"]} />}>
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      {/* =========================
+          ADMIN ROUTES
+      ========================= */}
+      <Route
+        element={
+          <RoleProtectedRoute
+            allowedRoles={["ADMIN"]}
+          />
+        }
+      >
+        <Route
+          path="/admin/dashboard"
+          element={<AdminDashboard />}
+        />
       </Route>
     </Routes>
   );

@@ -1,31 +1,29 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 
 function JobSeekerDashboard() {
-  const { user, session } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
-  // Jobs
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { user, session } = useSelector((state) => state.auth);
 
-  // Filters
+  const [jobs, setJobs] = useState([]);
+  const [applications, setApplications] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [applicationsLoading, setApplicationsLoading] = useState(true);
+
+  const [error, setError] = useState("");
+  const [applicationsError, setApplicationsError] = useState("");
+
+  // Search and filters
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("");
   const [jobType, setJobType] = useState("");
   const [minSalary, setMinSalary] = useState("");
 
-  // Applications
-  const [applications, setApplications] = useState([]);
-  const [applicationsLoading, setApplicationsLoading] =
-    useState(true);
-  const [applicationsError, setApplicationsError] =
-    useState("");
-
-  // Fetch Jobs
+  // Fetch jobs
   useEffect(() => {
     const fetchJobs = async () => {
       try {
@@ -36,10 +34,10 @@ function JobSeekerDashboard() {
           `${import.meta.env.VITE_API_URL}/api/jobs`,
           {
             params: {
-              search: search || undefined,
-              location: location || undefined,
-              jobType: jobType || undefined,
-              minSalary: minSalary || undefined,
+              search,
+              location,
+              jobType,
+              minSalary,
             },
           }
         );
@@ -49,8 +47,7 @@ function JobSeekerDashboard() {
         console.error("Failed to fetch jobs:", err);
 
         setError(
-          err.response?.data?.message ||
-            "Failed to load jobs"
+          err.response?.data?.message || "Failed to load jobs"
         );
       } finally {
         setLoading(false);
@@ -60,9 +57,11 @@ function JobSeekerDashboard() {
     fetchJobs();
   }, [search, location, jobType, minSalary]);
 
-  // Fetch My Applications
+  // Fetch my applications
   useEffect(() => {
     const fetchApplications = async () => {
+      if (!session) return;
+
       try {
         setApplicationsLoading(true);
         setApplicationsError("");
@@ -76,14 +75,9 @@ function JobSeekerDashboard() {
           }
         );
 
-        setApplications(
-          response.data.applications || []
-        );
+        setApplications(response.data.applications || []);
       } catch (err) {
-        console.error(
-          "Failed to fetch applications:",
-          err
-        );
+        console.error("Failed to fetch applications:", err);
 
         setApplicationsError(
           err.response?.data?.message ||
@@ -94,409 +88,287 @@ function JobSeekerDashboard() {
       }
     };
 
-    if (session) {
-      fetchApplications();
-    }
+    fetchApplications();
   }, [session]);
 
+  // Application status badge
+  const getStatusClass = (status) => {
+    switch (status) {
+      case "SHORTLISTED":
+        return "bg-green-100 text-green-700";
+
+      case "REJECTED":
+        return "bg-red-100 text-red-700";
+
+      case "HIRED":
+        return "bg-indigo-100 text-indigo-700";
+
+      case "APPLIED":
+      default:
+        return "bg-slate-100 text-slate-700";
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 p-6 md:p-8">
+      <div className="mx-auto max-w-7xl">
 
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              JobConnect
-            </h1>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Welcome back, {user?.name || "Job Seeker"}
-            </p>
-          </div>
-
-          <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">
-            Job Seeker
-          </div>
-        </div>
-      </header>
-
-      {/* Main */}
-      <main className="mx-auto max-w-7xl px-6 py-8">
-
-        {/* Page Heading */}
+        {/* Header */}
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-slate-900">
-            Find Your Next Job
-          </h2>
+          <h1 className="text-3xl font-bold text-slate-900">
+            Job Seeker Dashboard
+          </h1>
 
           <p className="mt-2 text-slate-500">
-            Search and apply for opportunities that match
-            your skills.
+            Welcome back, {user?.name} 👋
           </p>
         </div>
 
-        {/* Search and Filters */}
-        <div className="mb-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+        {/* Search Section */}
+        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+          <h2 className="text-xl font-semibold text-slate-900">
+            Find Jobs
+          </h2>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-5 grid gap-4 md:grid-cols-4">
 
             {/* Search */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Search
-              </label>
-
-              <input
-                type="text"
-                placeholder="Job title..."
-                value={search}
-                onChange={(e) =>
-                  setSearch(e.target.value)
-                }
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
-              />
-            </div>
+            <input
+              type="text"
+              placeholder="Search jobs..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
+            />
 
             {/* Location */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Location
-              </label>
-
-              <input
-                type="text"
-                placeholder="e.g. Bangalore"
-                value={location}
-                onChange={(e) =>
-                  setLocation(e.target.value)
-                }
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
-              />
-            </div>
+            <input
+              type="text"
+              placeholder="Location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
+            />
 
             {/* Job Type */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Job Type
-              </label>
-
-              <select
-                value={jobType}
-                onChange={(e) =>
-                  setJobType(e.target.value)
-                }
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-500"
-              >
-                <option value="">
-                  All Types
-                </option>
-
-                <option value="FULL_TIME">
-                  Full Time
-                </option>
-
-                <option value="PART_TIME">
-                  Part Time
-                </option>
-
-                <option value="INTERNSHIP">
-                  Internship
-                </option>
-
-                <option value="CONTRACT">
-                  Contract
-                </option>
-              </select>
-            </div>
+            <select
+              value={jobType}
+              onChange={(e) => setJobType(e.target.value)}
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
+            >
+              <option value="">All Job Types</option>
+              <option value="FULL_TIME">Full Time</option>
+              <option value="PART_TIME">Part Time</option>
+              <option value="INTERNSHIP">Internship</option>
+              <option value="CONTRACT">Contract</option>
+            </select>
 
             {/* Minimum Salary */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Minimum Salary
-              </label>
-
-              <input
-                type="number"
-                placeholder="e.g. 30000"
-                value={minSalary}
-                onChange={(e) =>
-                  setMinSalary(e.target.value)
-                }
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
-              />
-            </div>
-
+            <input
+              type="number"
+              placeholder="Minimum salary"
+              value={minSalary}
+              onChange={(e) => setMinSalary(e.target.value)}
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
+            />
           </div>
         </div>
 
         {/* Jobs Section */}
-        <section>
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-xl font-semibold text-slate-900">
-              Available Jobs
-            </h3>
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold text-slate-900">
+            Available Jobs
+          </h2>
 
-            <span className="text-sm text-slate-500">
-              {jobs.length}{" "}
-              {jobs.length === 1 ? "job" : "jobs"}
-            </span>
-          </div>
-
-          {/* Loading */}
           {loading && (
-            <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
+            <p className="mt-5 text-slate-500">
+              Loading jobs...
+            </p>
+          )}
+
+          {error && (
+            <div className="mt-5 rounded-xl bg-red-50 p-4 text-red-700">
+              {error}
+            </div>
+          )}
+
+          {!loading && !error && jobs.length === 0 && (
+            <div className="mt-5 rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
               <p className="text-slate-500">
-                Loading jobs...
+                No jobs found.
               </p>
             </div>
           )}
 
-          {/* Error */}
-          {!loading && error && (
-            <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
-              <p className="text-red-600">
-                {error}
-              </p>
-            </div>
-          )}
+          {!loading && !error && jobs.length > 0 && (
+            <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
-          {/* No Jobs */}
-          {!loading &&
-            !error &&
-            jobs.length === 0 && (
-              <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
-                <p className="text-slate-500">
-                  No jobs found matching your filters.
-                </p>
-              </div>
-            )}
+              {jobs.map((job) => (
+                <div
+                  key={job.id}
+                  className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 transition hover:shadow-md"
+                >
+                  {/* Job title */}
+                  <h3 className="text-xl font-semibold text-slate-900">
+                    {job.title}
+                  </h3>
 
-          {/* Job Cards */}
-          {!loading &&
-            !error &&
-            jobs.length > 0 && (
-              <div className="grid gap-5 md:grid-cols-2">
+                  {/* Company */}
+                  <p className="mt-2 font-medium text-slate-700">
+                    {job.companies?.name || "Company"}
+                  </p>
 
-                {jobs.map((job) => (
-                  <div
-                    key={job.id}
-                    className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+                  {/* Location */}
+                  <p className="mt-2 text-sm text-slate-500">
+                    📍 {job.location || "Location not specified"}
+                  </p>
+
+                  {/* Job Type */}
+                  <p className="mt-1 text-sm text-slate-500">
+                    💼 {job.jobType || "Not specified"}
+                  </p>
+
+                  {/* Salary */}
+                  {(job.salaryMin || job.salaryMax) && (
+                    <p className="mt-1 text-sm text-slate-500">
+                      💰 ₹{job.salaryMin || 0} - ₹
+                      {job.salaryMax || "N/A"}
+                    </p>
+                  )}
+
+                  {/* Description */}
+                  <p className="mt-4 line-clamp-3 text-sm text-slate-600">
+                    {job.description}
+                  </p>
+
+                  {/* View Job */}
+                  <button
+                    onClick={() =>
+                      navigate(`/jobseeker/jobs/${job.id}`)
+                    }
+                    className="mt-5 w-full rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white transition hover:bg-slate-800"
                   >
+                    View Job
+                  </button>
+                </div>
+              ))}
 
-                    {/* Title */}
-                    <h4 className="text-xl font-semibold text-slate-900">
-                      {job.title}
-                    </h4>
-
-                    {/* Company */}
-                    <p className="mt-1 text-sm font-medium text-slate-600">
-                      {job.companies?.name ||
-                        "Company"}
-                    </p>
-
-                    {/* Job Info */}
-                    <div className="mt-4 flex flex-wrap gap-2">
-
-                      {job.location && (
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">
-                          📍 {job.location}
-                        </span>
-                      )}
-
-                      {job.jobType && (
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">
-                          {job.jobType}
-                        </span>
-                      )}
-
-                    </div>
-
-                    {/* Salary */}
-                    {(job.salaryMin !== null ||
-                      job.salaryMax !== null) && (
-                      <p className="mt-4 text-sm font-medium text-slate-700">
-                        Salary:{" "}
-                        {job.salaryMin !== null
-                          ? `₹${job.salaryMin}`
-                          : "Not specified"}{" "}
-                        -{" "}
-                        {job.salaryMax !== null
-                          ? `₹${job.salaryMax}`
-                          : "Not specified"}
-                      </p>
-                    )}
-
-                    {/* Description */}
-                    <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-500">
-                      {job.description ||
-                        "No description provided."}
-                    </p>
-
-                    {/* View Details */}
-                    <button
-                      onClick={() =>
-                        navigate(
-                          `/jobseeker/jobs/${job.id}`
-                        )
-                      }
-                      className="mt-5 rounded-xl bg-slate-900 px-5 py-2 text-sm font-medium text-white hover:bg-slate-800"
-                    >
-                      View Details
-                    </button>
-
-                  </div>
-                ))}
-
-              </div>
-            )}
-        </section>
+            </div>
+          )}
+        </div>
 
         {/* My Applications */}
-        <section className="mt-12">
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-slate-900">
+            My Applications
+          </h2>
 
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-xl font-semibold text-slate-900">
-              My Applications
-            </h3>
-
-            <span className="text-sm text-slate-500">
-              {applications.length}{" "}
-              {applications.length === 1
-                ? "application"
-                : "applications"}
-            </span>
-          </div>
-
-          {/* Loading */}
           {applicationsLoading && (
-            <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
-              <p className="text-slate-500">
-                Loading applications...
-              </p>
+            <p className="mt-5 text-slate-500">
+              Loading applications...
+            </p>
+          )}
+
+          {applicationsError && (
+            <div className="mt-5 rounded-xl bg-red-50 p-4 text-red-700">
+              {applicationsError}
             </div>
           )}
 
-          {/* Error */}
-          {!applicationsLoading &&
-            applicationsError && (
-              <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
-                <p className="text-red-600">
-                  {applicationsError}
-                </p>
-              </div>
-            )}
-
-          {/* No Applications */}
           {!applicationsLoading &&
             !applicationsError &&
             applications.length === 0 && (
-              <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
+              <div className="mt-5 rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
                 <p className="text-slate-500">
                   You haven't applied to any jobs yet.
                 </p>
-
-                <button
-                  onClick={() =>
-                    window.scrollTo({
-                      top: 0,
-                      behavior: "smooth",
-                    })
-                  }
-                  className="mt-4 rounded-xl bg-slate-900 px-5 py-2 text-sm font-medium text-white hover:bg-slate-800"
-                >
-                  Browse Jobs
-                </button>
               </div>
             )}
 
-          {/* Application Cards */}
           {!applicationsLoading &&
             !applicationsError &&
             applications.length > 0 && (
-              <div className="grid gap-5 md:grid-cols-2">
+              <div className="mt-5 space-y-4">
 
-                {applications.map((application) => (
-                  <div
-                    key={application.id}
-                    className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
-                  >
+                {applications.map((application) => {
+                  const job = application.jobs;
 
-                    {/* Job */}
-                    <h4 className="text-xl font-semibold text-slate-900">
-                      {application.jobs?.title ||
-                        "Job"}
-                    </h4>
+                  return (
+                    <div
+                      key={application.id}
+                      className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+                    >
+                      <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
 
-                    {/* Company */}
-                    <p className="mt-1 text-sm font-medium text-slate-600">
-                      {application.jobs?.companies
-                        ?.name || "Company"}
-                    </p>
+                        {/* Application Info */}
+                        <div>
+                          <h3 className="text-xl font-semibold text-slate-900">
+                            {job?.title || "Job"}
+                          </h3>
 
-                    {/* Job Information */}
-                    <div className="mt-4 flex flex-wrap gap-2">
+                          <p className="mt-1 font-medium text-slate-700">
+                            {job?.companies?.name || "Company"}
+                          </p>
 
-                      {application.jobs?.location && (
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">
-                          📍{" "}
-                          {application.jobs.location}
-                        </span>
-                      )}
+                          <div className="mt-3 space-y-1 text-sm text-slate-500">
+                            <p>
+                              📍{" "}
+                              {job?.location ||
+                                "Location not specified"}
+                            </p>
 
-                      {application.jobs?.jobType && (
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">
-                          {application.jobs.jobType}
-                        </span>
-                      )}
+                            <p>
+                              💼{" "}
+                              {job?.jobType ||
+                                "Not specified"}
+                            </p>
 
+                            <p>
+                              Applied on:{" "}
+                              {application.appliedAt
+                                ? new Date(
+                                    application.appliedAt
+                                  ).toLocaleDateString()
+                                : "N/A"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Status + Button */}
+                        <div className="flex flex-col items-start gap-3 md:items-end">
+
+                          {/* Status Badge */}
+                          <span
+                            className={`rounded-full px-4 py-2 text-xs font-semibold ${getStatusClass(
+                              application.status
+                            )}`}
+                          >
+                            {application.status}
+                          </span>
+
+                          {/* View Job */}
+                          {job?.id && (
+                            <button
+                              onClick={() =>
+                                navigate(
+                                  `/jobseeker/jobs/${job.id}`
+                                )
+                              }
+                              className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                            >
+                              View Job
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-
-                    {/* Status */}
-                    <div className="mt-5">
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Application Status
-                      </p>
-
-                      <span className="mt-2 inline-block rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
-                        {application.status}
-                      </span>
-                    </div>
-
-                    {/* Applied Date */}
-                    {application.appliedAt && (
-                      <p className="mt-4 text-xs text-slate-400">
-                        Applied on{" "}
-                        {new Date(
-                          application.appliedAt
-                        ).toLocaleDateString()}
-                      </p>
-                    )}
-
-                    {/* View Job */}
-                    {application.jobs?.id && (
-                      <button
-                        onClick={() =>
-                          navigate(
-                            `/jobseeker/jobs/${application.jobs.id}`
-                          )
-                        }
-                        className="mt-5 rounded-xl border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                      >
-                        View Job
-                      </button>
-                    )}
-
-                  </div>
-                ))}
+                  );
+                })}
 
               </div>
             )}
-
-        </section>
-
-      </main>
+        </div>
+      </div>
     </div>
   );
 }

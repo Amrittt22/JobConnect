@@ -15,6 +15,14 @@ function ManageJobs() {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
+        setLoading(true);
+        setError("");
+
+        if (!session?.access_token) {
+          setError("Authentication session not found.");
+          return;
+        }
+
         const response = await axios.get(
           `${import.meta.env.VITE_API_URL}/api/jobs/my`,
           {
@@ -24,7 +32,9 @@ function ManageJobs() {
           },
         );
 
-        setJobs(response.data.jobs);
+        console.log("Manage Jobs API response:", response.data);
+
+        setJobs(response.data.jobs || []);
       } catch (err) {
         console.error("Failed to load jobs:", err);
 
@@ -34,9 +44,7 @@ function ManageJobs() {
       }
     };
 
-    if (session) {
-      fetchJobs();
-    }
+    fetchJobs();
   }, [session]);
 
   const handleDelete = async (jobId) => {
@@ -47,6 +55,8 @@ function ManageJobs() {
     if (!confirmed) return;
 
     try {
+      setError("");
+
       await axios.delete(`${import.meta.env.VITE_API_URL}/api/jobs/${jobId}`, {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -79,7 +89,8 @@ function ManageJobs() {
 
       {/* Main */}
       <main className="mx-auto max-w-7xl px-4 py-10">
-        <div className="mb-8 flex items-center justify-between">
+        {/* Page Header */}
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-2xl font-bold text-slate-900">Manage Jobs</h2>
 
@@ -109,7 +120,7 @@ function ManageJobs() {
             <p className="text-slate-500">Loading your jobs...</p>
           </div>
         ) : jobs.length === 0 ? (
-          /* No jobs */
+          /* No Jobs */
           <div className="rounded-2xl bg-white p-12 text-center shadow-sm">
             <h3 className="text-lg font-semibold text-slate-900">
               No jobs posted yet
@@ -131,8 +142,10 @@ function ManageJobs() {
           <div className="space-y-4">
             {jobs.map((job) => (
               <div key={job.id} className="rounded-2xl bg-white p-6 shadow-sm">
-                <div className="flex flex-col justify-between gap-5 md:flex-row">
-                  <div>
+                <div className="flex flex-col justify-between gap-6 lg:flex-row">
+                  {/* Job Information */}
+                  <div className="min-w-0 flex-1">
+                    {/* Title + Status */}
                     <div className="flex flex-wrap items-center gap-3">
                       <h3 className="text-xl font-semibold text-slate-900">
                         {job.title}
@@ -149,31 +162,35 @@ function ManageJobs() {
                       </span>
                     </div>
 
+                    {/* Company */}
                     <p className="mt-2 text-sm font-medium text-indigo-600">
-                      {job.companies?.name}
+                      {job.companies?.name || "Company"}
                     </p>
 
-                    <p className="mt-3 text-sm text-slate-600">
-                      {job.description}
+                    {/* Description */}
+                    <p className="mt-3 text-sm leading-6 text-slate-600">
+                      {job.description || "No description provided."}
                     </p>
 
+                    {/* Job Details */}
                     <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-500">
                       {job.location && <span>📍 {job.location}</span>}
 
-                      <span>💼 {job.jobType}</span>
+                      {job.jobType && <span>💼 {job.jobType}</span>}
 
-                      {(job.salaryMin || job.salaryMax) && (
+                      {(job.salaryMin !== null || job.salaryMax !== null) && (
                         <span>
                           💰 ₹{job.salaryMin || 0} - ₹{job.salaryMax || 0}
                         </span>
                       )}
                     </div>
 
+                    {/* Skills */}
                     {job.skillsRequired?.length > 0 && (
                       <div className="mt-4 flex flex-wrap gap-2">
-                        {job.skillsRequired.map((skill) => (
+                        {job.skillsRequired.map((skill, index) => (
                           <span
-                            key={skill}
+                            key={`${skill}-${index}`}
                             className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600"
                           >
                             {skill}
@@ -183,7 +200,20 @@ function ManageJobs() {
                     )}
                   </div>
 
-                  <div className="flex items-start gap-2">
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap items-start gap-2 lg:w-auto">
+                    {/* View Applicants */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate(`/recruiter/jobs/${job.id}/applicants`);
+                      }}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                    >
+                      View Applicants
+                    </button>
+
+                    {/* Edit */}
                     <button
                       onClick={() => navigate(`/recruiter/edit-job/${job.id}`)}
                       className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
@@ -191,6 +221,7 @@ function ManageJobs() {
                       Edit
                     </button>
 
+                    {/* Delete */}
                     <button
                       onClick={() => handleDelete(job.id)}
                       className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"

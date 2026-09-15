@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 function RecruiterDashboard() {
   const navigate = useNavigate();
+
   const { user } = useSelector((state) => state.auth);
 
   return (
@@ -17,29 +18,47 @@ function RecruiterDashboard() {
         </p>
 
         <div className="mt-8 grid gap-6 md:grid-cols-3">
+          {/* Post Job */}
           <button
             onClick={() => navigate("/recruiter/post-job")}
             className="rounded-2xl bg-white p-6 text-left shadow-sm ring-1 ring-slate-200 transition hover:shadow-md hover:ring-slate-300"
           >
-            <h2 className="font-semibold">Post a Job</h2>
+            <h2 className="font-semibold">
+              Post a Job
+            </h2>
+
             <p className="mt-2 text-sm text-slate-500">
               Create and publish new opportunities.
             </p>
           </button>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <h2 className="font-semibold">Applications</h2>
+          {/* Applications */}
+          <button
+            onClick={() => navigate("/recruiter/jobs")}
+            className="rounded-2xl bg-white p-6 text-left shadow-sm ring-1 ring-slate-200 transition hover:shadow-md hover:ring-slate-300"
+          >
+            <h2 className="font-semibold">
+              Applications
+            </h2>
+
             <p className="mt-2 text-sm text-slate-500">
               Review candidates who applied.
             </p>
-          </div>
+          </button>
 
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <h2 className="font-semibold">Manage Jobs</h2>
+          {/* Manage Jobs */}
+          <button
+            onClick={() => navigate("/recruiter/jobs")}
+            className="rounded-2xl bg-white p-6 text-left shadow-sm ring-1 ring-slate-200 transition hover:shadow-md hover:ring-slate-300"
+          >
+            <h2 className="font-semibold">
+              Manage Jobs
+            </h2>
+
             <p className="mt-2 text-sm text-slate-500">
               Manage your active job postings.
             </p>
-          </div>
+          </button>
         </div>
       </div>
     </div>
