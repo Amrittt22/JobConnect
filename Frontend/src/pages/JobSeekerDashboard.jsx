@@ -10,14 +10,16 @@ function JobSeekerDashboard() {
 
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [savedJobs, setSavedJobs] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [applicationsLoading, setApplicationsLoading] = useState(true);
+  const [savedJobsLoading, setSavedJobsLoading] = useState(true);
 
   const [error, setError] = useState("");
   const [applicationsError, setApplicationsError] = useState("");
+  const [savedJobsError, setSavedJobsError] = useState("");
 
-  // Search and filters
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("");
   const [jobType, setJobType] = useState("");
@@ -47,7 +49,8 @@ function JobSeekerDashboard() {
         console.error("Failed to fetch jobs:", err);
 
         setError(
-          err.response?.data?.message || "Failed to load jobs"
+          err.response?.data?.message ||
+            "Failed to load jobs"
         );
       } finally {
         setLoading(false);
@@ -57,7 +60,7 @@ function JobSeekerDashboard() {
     fetchJobs();
   }, [search, location, jobType, minSalary]);
 
-  // Fetch my applications
+  // Fetch applications
   useEffect(() => {
     const fetchApplications = async () => {
       if (!session) return;
@@ -77,7 +80,10 @@ function JobSeekerDashboard() {
 
         setApplications(response.data.applications || []);
       } catch (err) {
-        console.error("Failed to fetch applications:", err);
+        console.error(
+          "Failed to fetch applications:",
+          err
+        );
 
         setApplicationsError(
           err.response?.data?.message ||
@@ -91,7 +97,77 @@ function JobSeekerDashboard() {
     fetchApplications();
   }, [session]);
 
-  // Application status badge
+  // Fetch saved jobs
+  useEffect(() => {
+    const fetchSavedJobs = async () => {
+      if (!session) return;
+
+      try {
+        setSavedJobsLoading(true);
+        setSavedJobsError("");
+
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/saved-jobs`,
+          {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }
+        );
+
+        setSavedJobs(response.data.savedJobs || []);
+      } catch (err) {
+        console.error(
+          "Failed to fetch saved jobs:",
+          err
+        );
+
+        setSavedJobsError(
+          err.response?.data?.message ||
+            "Failed to load saved jobs"
+        );
+      } finally {
+        setSavedJobsLoading(false);
+      }
+    };
+
+    fetchSavedJobs();
+  }, [session]);
+
+  // Unsave job
+  const handleUnsave = async (jobId) => {
+    if (!session) return;
+
+    try {
+      await axios.delete(
+        `${import.meta.env.VITE_API_URL}/api/saved-jobs/${jobId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      setSavedJobs((currentSavedJobs) =>
+        currentSavedJobs.filter(
+          (savedJob) =>
+            String(savedJob.jobId) !== String(jobId)
+        )
+      );
+    } catch (err) {
+      console.error(
+        "Failed to unsave job:",
+        err
+      );
+
+      alert(
+        err.response?.data?.message ||
+          "Failed to remove saved job"
+      );
+    }
+  };
+
+  // Application status class
   const getStatusClass = (status) => {
     switch (status) {
       case "SHORTLISTED":
@@ -124,7 +200,7 @@ function JobSeekerDashboard() {
           </p>
         </div>
 
-        {/* Search Section */}
+        {/* Search */}
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
           <h2 className="text-xl font-semibold text-slate-900">
             Find Jobs
@@ -132,49 +208,61 @@ function JobSeekerDashboard() {
 
           <div className="mt-5 grid gap-4 md:grid-cols-4">
 
-            {/* Search */}
             <input
               type="text"
               placeholder="Search jobs..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
               className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
             />
 
-            {/* Location */}
             <input
               type="text"
               placeholder="Location"
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={(e) =>
+                setLocation(e.target.value)
+              }
               className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
             />
 
-            {/* Job Type */}
             <select
               value={jobType}
-              onChange={(e) => setJobType(e.target.value)}
+              onChange={(e) =>
+                setJobType(e.target.value)
+              }
               className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
             >
               <option value="">All Job Types</option>
-              <option value="FULL_TIME">Full Time</option>
-              <option value="PART_TIME">Part Time</option>
-              <option value="INTERNSHIP">Internship</option>
-              <option value="CONTRACT">Contract</option>
+              <option value="FULL_TIME">
+                Full Time
+              </option>
+              <option value="PART_TIME">
+                Part Time
+              </option>
+              <option value="INTERNSHIP">
+                Internship
+              </option>
+              <option value="CONTRACT">
+                Contract
+              </option>
             </select>
 
-            {/* Minimum Salary */}
             <input
               type="number"
               placeholder="Minimum salary"
               value={minSalary}
-              onChange={(e) => setMinSalary(e.target.value)}
+              onChange={(e) =>
+                setMinSalary(e.target.value)
+              }
               className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
             />
           </div>
         </div>
 
-        {/* Jobs Section */}
+        {/* Available Jobs */}
         <div className="mt-8">
           <h2 className="text-2xl font-bold text-slate-900">
             Available Jobs
@@ -192,69 +280,204 @@ function JobSeekerDashboard() {
             </div>
           )}
 
-          {!loading && !error && jobs.length === 0 && (
-            <div className="mt-5 rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
-              <p className="text-slate-500">
-                No jobs found.
-              </p>
-            </div>
-          )}
+          {!loading &&
+            !error &&
+            jobs.length === 0 && (
+              <div className="mt-5 rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
+                <p className="text-slate-500">
+                  No jobs found.
+                </p>
+              </div>
+            )}
 
-          {!loading && !error && jobs.length > 0 && (
-            <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-
-              {jobs.map((job) => (
-                <div
-                  key={job.id}
-                  className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 transition hover:shadow-md"
-                >
-                  {/* Job title */}
-                  <h3 className="text-xl font-semibold text-slate-900">
-                    {job.title}
-                  </h3>
-
-                  {/* Company */}
-                  <p className="mt-2 font-medium text-slate-700">
-                    {job.companies?.name || "Company"}
-                  </p>
-
-                  {/* Location */}
-                  <p className="mt-2 text-sm text-slate-500">
-                    📍 {job.location || "Location not specified"}
-                  </p>
-
-                  {/* Job Type */}
-                  <p className="mt-1 text-sm text-slate-500">
-                    💼 {job.jobType || "Not specified"}
-                  </p>
-
-                  {/* Salary */}
-                  {(job.salaryMin || job.salaryMax) && (
-                    <p className="mt-1 text-sm text-slate-500">
-                      💰 ₹{job.salaryMin || 0} - ₹
-                      {job.salaryMax || "N/A"}
-                    </p>
-                  )}
-
-                  {/* Description */}
-                  <p className="mt-4 line-clamp-3 text-sm text-slate-600">
-                    {job.description}
-                  </p>
-
-                  {/* View Job */}
-                  <button
-                    onClick={() =>
-                      navigate(`/jobseeker/jobs/${job.id}`)
-                    }
-                    className="mt-5 w-full rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white transition hover:bg-slate-800"
+          {!loading &&
+            !error &&
+            jobs.length > 0 && (
+              <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {jobs.map((job) => (
+                  <div
+                    key={job.id}
+                    className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 transition hover:shadow-md"
                   >
-                    View Job
-                  </button>
-                </div>
-              ))}
+                    <h3 className="text-xl font-semibold text-slate-900">
+                      {job.title}
+                    </h3>
 
+                    <p className="mt-2 font-medium text-slate-700">
+                      {job.companies?.name ||
+                        "Company"}
+                    </p>
+
+                    <p className="mt-2 text-sm text-slate-500">
+                      📍{" "}
+                      {job.location ||
+                        "Location not specified"}
+                    </p>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      💼{" "}
+                      {job.jobType ||
+                        "Not specified"}
+                    </p>
+
+                    {(job.salaryMin ||
+                      job.salaryMax) && (
+                      <p className="mt-1 text-sm text-slate-500">
+                        💰 ₹{job.salaryMin || 0} - ₹
+                        {job.salaryMax || "N/A"}
+                      </p>
+                    )}
+
+                    <p className="mt-4 line-clamp-3 text-sm text-slate-600">
+                      {job.description}
+                    </p>
+
+                    <button
+                      onClick={() =>
+                        navigate(
+                          `/jobseeker/jobs/${job.id}`
+                        )
+                      }
+                      className="mt-5 w-full rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white transition hover:bg-slate-800"
+                    >
+                      View Job
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+        </div>
+
+        {/* Saved Jobs */}
+        <div className="mt-12">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-slate-900">
+              🔖 Saved Jobs
+            </h2>
+
+            {!savedJobsLoading && (
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
+                {savedJobs.length} saved
+              </span>
+            )}
+          </div>
+
+          {savedJobsLoading && (
+            <p className="mt-5 text-slate-500">
+              Loading saved jobs...
+            </p>
+          )}
+
+          {savedJobsError && (
+            <div className="mt-5 rounded-xl bg-red-50 p-4 text-red-700">
+              {savedJobsError}
             </div>
           )}
+
+          {!savedJobsLoading &&
+            !savedJobsError &&
+            savedJobs.length === 0 && (
+              <div className="mt-5 rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
+                <div className="text-4xl">
+                  🔖
+                </div>
+
+                <h3 className="mt-3 font-semibold text-slate-900">
+                  No saved jobs yet
+                </h3>
+
+                <p className="mt-2 text-sm text-slate-500">
+                  Save jobs you're interested in
+                  and find them here later.
+                </p>
+              </div>
+            )}
+
+          {!savedJobsLoading &&
+            !savedJobsError &&
+            savedJobs.length > 0 && (
+              <div className="mt-5 grid gap-6 md:grid-cols-2">
+                {savedJobs.map((savedJob) => {
+                  const job = savedJob.jobs;
+
+                  return (
+                    <div
+                      key={`${savedJob.jobId}-${savedJob.userId}`}
+                      className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+                    >
+                      <div className="flex flex-col justify-between gap-5 sm:flex-row">
+
+                        {/* Job information */}
+                        <div>
+                          <h3 className="text-xl font-semibold text-slate-900">
+                            {job?.title ||
+                              "Job unavailable"}
+                          </h3>
+
+                          <p className="mt-2 font-medium text-slate-700">
+                            {job?.companies?.name ||
+                              "Company"}
+                          </p>
+
+                          <div className="mt-3 space-y-1 text-sm text-slate-500">
+                            <p>
+                              📍{" "}
+                              {job?.location ||
+                                "Location not specified"}
+                            </p>
+
+                            <p>
+                              💼{" "}
+                              {job?.jobType ||
+                                "Not specified"}
+                            </p>
+
+                            {(job?.salaryMin ||
+                              job?.salaryMax) && (
+                              <p>
+                                💰 ₹
+                                {job?.salaryMin ||
+                                  0}{" "}
+                                - ₹
+                                {job?.salaryMax ||
+                                  "N/A"}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-col gap-2 sm:min-w-[130px]">
+                          {job?.id && (
+                            <button
+                              onClick={() =>
+                                navigate(
+                                  `/jobseeker/jobs/${job.id}`
+                                )
+                              }
+                              className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                            >
+                              View Job
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() =>
+                              handleUnsave(
+                                savedJob.jobId
+                              )
+                            }
+                            className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                          >
+                            Unsave
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
         </div>
 
         {/* My Applications */}
@@ -280,7 +503,8 @@ function JobSeekerDashboard() {
             applications.length === 0 && (
               <div className="mt-5 rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
                 <p className="text-slate-500">
-                  You haven't applied to any jobs yet.
+                  You haven't applied to any
+                  jobs yet.
                 </p>
               </div>
             )}
@@ -289,82 +513,78 @@ function JobSeekerDashboard() {
             !applicationsError &&
             applications.length > 0 && (
               <div className="mt-5 space-y-4">
+                {applications.map(
+                  (application) => {
+                    const job = application.jobs;
 
-                {applications.map((application) => {
-                  const job = application.jobs;
+                    return (
+                      <div
+                        key={application.id}
+                        className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
+                      >
+                        <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
 
-                  return (
-                    <div
-                      key={application.id}
-                      className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"
-                    >
-                      <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
+                          <div>
+                            <h3 className="text-xl font-semibold text-slate-900">
+                              {job?.title || "Job"}
+                            </h3>
 
-                        {/* Application Info */}
-                        <div>
-                          <h3 className="text-xl font-semibold text-slate-900">
-                            {job?.title || "Job"}
-                          </h3>
-
-                          <p className="mt-1 font-medium text-slate-700">
-                            {job?.companies?.name || "Company"}
-                          </p>
-
-                          <div className="mt-3 space-y-1 text-sm text-slate-500">
-                            <p>
-                              📍{" "}
-                              {job?.location ||
-                                "Location not specified"}
+                            <p className="mt-1 font-medium text-slate-700">
+                              {job?.companies?.name ||
+                                "Company"}
                             </p>
 
-                            <p>
-                              💼{" "}
-                              {job?.jobType ||
-                                "Not specified"}
-                            </p>
+                            <div className="mt-3 space-y-1 text-sm text-slate-500">
+                              <p>
+                                📍{" "}
+                                {job?.location ||
+                                  "Location not specified"}
+                              </p>
 
-                            <p>
-                              Applied on:{" "}
-                              {application.appliedAt
-                                ? new Date(
-                                    application.appliedAt
-                                  ).toLocaleDateString()
-                                : "N/A"}
-                            </p>
+                              <p>
+                                💼{" "}
+                                {job?.jobType ||
+                                  "Not specified"}
+                              </p>
+
+                              <p>
+                                Applied on:{" "}
+                                {application.appliedAt
+                                  ? new Date(
+                                      application.appliedAt
+                                    ).toLocaleDateString()
+                                  : "N/A"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col items-start gap-3 md:items-end">
+                            <span
+                              className={`rounded-full px-4 py-2 text-xs font-semibold ${getStatusClass(
+                                application.status
+                              )}`}
+                            >
+                              {application.status}
+                            </span>
+
+                            {job?.id && (
+                              <button
+                                onClick={() =>
+                                  navigate(
+                                    `/jobseeker/jobs/${job.id}`
+                                  )
+                                }
+                                className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                              >
+                                View Job
+                              </button>
+                            )}
                           </div>
                         </div>
-
-                        {/* Status + Button */}
-                        <div className="flex flex-col items-start gap-3 md:items-end">
-
-                          {/* Status Badge */}
-                          <span
-                            className={`rounded-full px-4 py-2 text-xs font-semibold ${getStatusClass(
-                              application.status
-                            )}`}
-                          >
-                            {application.status}
-                          </span>
-
-                          {/* View Job */}
-                          {job?.id && (
-                            <button
-                              onClick={() =>
-                                navigate(
-                                  `/jobseeker/jobs/${job.id}`
-                                )
-                              }
-                              className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-                            >
-                              View Job
-                            </button>
-                          )}
-                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-
+                    );
+                  }
+                )}
               </div>
             )}
         </div>
