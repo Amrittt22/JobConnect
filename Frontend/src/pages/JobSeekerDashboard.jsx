@@ -11,6 +11,7 @@ function JobSeekerDashboard() {
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
   const [savedJobs, setSavedJobs] = useState([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [applicationsLoading, setApplicationsLoading] = useState(true);
@@ -134,6 +135,40 @@ function JobSeekerDashboard() {
     fetchSavedJobs();
   }, [session]);
 
+  // Fetch unread notifications count
+  useEffect(() => {
+    const fetchUnreadNotifications = async () => {
+      if (!session) return;
+
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/notifications`,
+          {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }
+        );
+
+        const notifications =
+          response.data.notifications || [];
+
+        const unreadCount = notifications.filter(
+          (notification) => !notification.read
+        ).length;
+
+        setUnreadNotifications(unreadCount);
+      } catch (err) {
+        console.error(
+          "Failed to fetch notification count:",
+          err
+        );
+      }
+    };
+
+    fetchUnreadNotifications();
+  }, [session]);
+
   // Unsave job
   const handleUnsave = async (jobId) => {
     if (!session) return;
@@ -198,6 +233,22 @@ function JobSeekerDashboard() {
           <p className="mt-2 text-slate-500">
             Welcome back, {user?.name} 👋
           </p>
+
+          {/* Notifications Button */}
+          <button
+            onClick={() =>
+              navigate("/jobseeker/notifications")
+            }
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            🔔 Notifications
+
+            {unreadNotifications > 0 && (
+              <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
+                {unreadNotifications}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Search */}
@@ -235,16 +286,22 @@ function JobSeekerDashboard() {
               }
               className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-500"
             >
-              <option value="">All Job Types</option>
+              <option value="">
+                All Job Types
+              </option>
+
               <option value="FULL_TIME">
                 Full Time
               </option>
+
               <option value="PART_TIME">
                 Part Time
               </option>
+
               <option value="INTERNSHIP">
                 Internship
               </option>
+
               <option value="CONTRACT">
                 Contract
               </option>
@@ -447,7 +504,7 @@ function JobSeekerDashboard() {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex flex-col gap-2 sm:min-w-[130px]">
+                        <div className="flex flex-col gap-2 sm:min-w-max-[150px] sm:items-end">
                           {job?.id && (
                             <button
                               onClick={() =>
@@ -580,6 +637,7 @@ function JobSeekerDashboard() {
                               </button>
                             )}
                           </div>
+
                         </div>
                       </div>
                     );
@@ -588,6 +646,7 @@ function JobSeekerDashboard() {
               </div>
             )}
         </div>
+
       </div>
     </div>
   );

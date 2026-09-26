@@ -1,11 +1,20 @@
-const applicationService = require("../services/applicationservice");
+const {
+  applyToJob,
+  getMyApplications,
+  getJobApplicants,
+  updateApplicationStatus,
+} = require("../services/applicationservice");
 
-const applyToJob = async (req, res, next) => {
+// Apply for a job
+const applyForJob = async (req, res, next) => {
   try {
-    const application = await applicationService.applyToJob({
-      jobId: req.params.jobId,
-      applicantId: req.user.id,
-    });
+    const jobId = req.params.jobId;
+    const userId = req.authUser.id;
+
+    console.log("Apply jobId:", jobId);
+    console.log("Apply userId:", userId);
+
+    const application = await applyToJob(jobId, userId);
 
     res.status(201).json({
       success: true,
@@ -16,11 +25,13 @@ const applyToJob = async (req, res, next) => {
     next(error);
   }
 };
-const getMyApplications = async (req, res, next) => {
+
+// Get current user's applications
+const getMyApplicationsController = async (req, res, next) => {
   try {
-    const applications = await applicationService.getMyApplications(
-      req.user.id,
-    );
+    const userId = req.authUser.id;
+
+    const applications = await getMyApplications(userId);
 
     res.status(200).json({
       success: true,
@@ -31,11 +42,15 @@ const getMyApplications = async (req, res, next) => {
   }
 };
 
-const getJobApplicants = async (req, res, next) => {
+// Get applicants for a recruiter's job
+const getJobApplicantsController = async (req, res, next) => {
   try {
-    const applicants = await applicationService.getJobApplicants(
-      req.params.jobId,
-      req.user.id
+    const jobId = req.params.jobId;
+    const recruiterId = req.authUser.id;
+
+    const applicants = await getJobApplicants(
+      jobId,
+      recruiterId
     );
 
     res.status(200).json({
@@ -47,12 +62,21 @@ const getJobApplicants = async (req, res, next) => {
   }
 };
 
-const updateApplicationStatus = async (req, res, next) => {
+// Update application status
+const updateApplicationStatusController = async (
+  req,
+  res,
+  next
+) => {
   try {
-    const application = await applicationService.updateApplicationStatus(
-      req.params.id,
-      req.user.id,
-      req.body.status
+    const applicationId = req.params.applicationId;
+    const recruiterId = req.authUser.id;
+    const { status } = req.body;
+
+    const application = await updateApplicationStatus(
+      applicationId,
+      recruiterId,
+      status
     );
 
     res.status(200).json({
@@ -64,9 +88,10 @@ const updateApplicationStatus = async (req, res, next) => {
     next(error);
   }
 };
+
 module.exports = {
-  applyToJob,
-  getMyApplications,
-  getJobApplicants,
-  updateApplicationStatus,
+  applyForJob,
+  getMyApplicationsController,
+  getJobApplicantsController,
+  updateApplicationStatusController,
 };

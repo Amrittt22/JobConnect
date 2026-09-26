@@ -8,6 +8,7 @@ const jobRoutes = require("./routes/jobroutes");
 const companyRoutes = require("./routes/companyRoutes");
 const savedJobRoutes = require("./routes/savedJobRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use("/api/jobs", jobRoutes);
 app.use("/api/companies", companyRoutes);
 app.use("/api/saved-jobs", savedJobRoutes);
 app.use("/api/applications", applicationRoutes);
+app.use("/api/notifications", notificationRoutes);
 // Health check
 app.get("/", (req, res) => {
   res.json({

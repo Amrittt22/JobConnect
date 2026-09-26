@@ -1,7 +1,10 @@
 const express = require("express");
 
 const {
-  applyToJob,getMyApplications,getJobApplicants,updateApplicationStatus
+  applyForJob,
+  getMyApplicationsController,
+  getJobApplicantsController,
+  updateApplicationStatusController,
 } = require("../controllers/applicationController");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -9,30 +12,36 @@ const authorizeRoles = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
-router.get(
-  "/my",
-  authMiddleware,
-  authorizeRoles("JOBSEEKER"),
-  getMyApplications
-);
+// Job seeker applies for a job
 router.post(
   "/:jobId/apply",
   authMiddleware,
   authorizeRoles("JOBSEEKER"),
-  applyToJob,
-  
+  applyForJob
 );
+
+// Job seeker gets their applications
+router.get(
+  "/my",
+  authMiddleware,
+  authorizeRoles("JOBSEEKER"),
+  getMyApplicationsController
+);
+
+// Recruiter gets applicants for a job
 router.get(
   "/job/:jobId",
   authMiddleware,
   authorizeRoles("RECRUITER"),
-  getJobApplicants
+  getJobApplicantsController
 );
+
+// Recruiter updates application status
 router.put(
-  "/:id/status",
+  "/:applicationId/status",
   authMiddleware,
   authorizeRoles("RECRUITER"),
-  updateApplicationStatus
+  updateApplicationStatusController
 );
 
 module.exports = router;

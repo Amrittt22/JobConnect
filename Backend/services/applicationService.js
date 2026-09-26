@@ -1,24 +1,32 @@
 const supabase = require("../config/supabaseClient");
 
-const applyToJob = async ({ jobId, applicantId }) => {
-  // Check that the job exists and is open
+const {
+  createNotification,
+} = require("./notificationService");
+
+// Apply for a job
+const applyToJob = async (jobId, applicantId) => {
+  // Check whether job exists and is open
   const { data: job, error: jobError } = await supabase
     .from("jobs")
-    .select("id, status")
+    .select("id, title, status")
     .eq("id", jobId)
     .eq("status", "OPEN")
     .single();
 
   if (jobError || !job) {
     const error = new Error(
-      "Job not found or no longer accepting applications",
+      "Job not found or no longer available"
     );
     error.statusCode = 404;
     throw error;
   }
 
-  // Check for an existing application
-  const { data: existingApplication, error: existingError } = await supabase
+  // Check whether applicant already applied
+  const {
+    data: existingApplication,
+    error: existingError,
+  } = await supabase
     .from("applications")
     .select("id")
     .eq("jobId", jobId)
@@ -30,7 +38,9 @@ const applyToJob = async ({ jobId, applicantId }) => {
   }
 
   if (existingApplication) {
-    const error = new Error("You have already applied for this job");
+    const error = new Error(
+      "You have already applied for this job"
+    );
     error.statusCode = 409;
     throw error;
   }
@@ -52,15 +62,17 @@ const applyToJob = async ({ jobId, applicantId }) => {
 
   return data;
 };
+
+// Get current user's applications
 const getMyApplications = async (applicantId) => {
   const { data, error } = await supabase
     .from("applications")
-    .select(
-      `
+    .select(`
       *,
       jobs (
         id,
         title,
+        description,
         location,
         jobType,
         salaryMin,
@@ -71,8 +83,7 @@ const getMyApplications = async (applicantId) => {
           logoUrl
         )
       )
-    `,
-    )
+    `)
     .eq("applicantId", applicantId)
     .order("appliedAt", { ascending: false });
 
@@ -83,8 +94,9 @@ const getMyApplications = async (applicantId) => {
   return data;
 };
 
+// Get applicants for a recruiter's job
 const getJobApplicants = async (jobId, recruiterId) => {
-  // First verify that this job belongs to the recruiter
+  // Verify recruiter owns the job
   const { data: job, error: jobError } = await supabase
     .from("jobs")
     .select("id")
@@ -100,7 +112,7 @@ const getJobApplicants = async (jobId, recruiterId) => {
     throw error;
   }
 
-  // Get all applications for this job
+  // Get applicants
   const { data, error } = await supabase
     .from("applications")
     .select(`
@@ -108,12 +120,7 @@ const getJobApplicants = async (jobId, recruiterId) => {
       users (
         id,
         name,
-        email,
-        profilePic,
-        resumeUrl,
-        skills,
-        bio,
-        location
+        email
       )
     `)
     .eq("jobId", jobId)
@@ -125,32 +132,47 @@ const getJobApplicants = async (jobId, recruiterId) => {
 
   return data;
 };
+
+// Update application status
 const updateApplicationStatus = async (
   applicationId,
   recruiterId,
   status
 ) => {
-  // Normalize status
-  const normalizedStatus = String(status || "")
-    .trim()
-    .toUpperCase();
+  const allowedStatuses = [
+    "APPLIED",
+    "SHORTLISTED",
+    "REJECTED",
+    "HIRED",
+  ];
 
-  console.log("Application status received:", normalizedStatus);
+  if (!allowedStatuses.includes(status)) {
+    const error = new Error(
+      "Invalid application status"
+    );
+    error.statusCode = 400;
+    throw error;
+  }
 
-  // Find application and verify recruiter owns the job
-  const { data: application, error: applicationError } =
-    await supabase
-      .from("applications")
-      .select(`
+  // Get application and verify recruiter owns the job
+  const {
+    data: application,
+    error: applicationError,
+  } = await supabase
+    .from("applications")
+    .select(`
+      id,
+      applicantId,
+      jobId,
+      status,
+      jobs (
         id,
-        jobId,
-        jobs (
-          id,
-          postedById
-        )
-      `)
-      .eq("id", applicationId)
-      .single();
+        title,
+        postedById
+      )
+    `)
+    .eq("id", applicationId)
+    .single();
 
   if (applicationError || !application) {
     const error = new Error("Application not found");
@@ -159,34 +181,22 @@ const updateApplicationStatus = async (
   }
 
   // Verify recruiter owns the job
-  if (application.jobs?.postedById !== recruiterId) {
+  if (
+    !application.jobs ||
+    application.jobs.postedById !== recruiterId
+  ) {
     const error = new Error(
       "You are not authorized to update this application"
     );
-
     error.statusCode = 403;
     throw error;
   }
 
-  // Allowed statuses
-  const allowedStatuses = [
-    "APPLIED",
-    "SHORTLISTED",
-    "REJECTED",
-    "HIRED",
-  ];
-
-  if (!allowedStatuses.includes(normalizedStatus)) {
-    const error = new Error("Invalid application status");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  // Update status
+  // Update application status
   const { data, error } = await supabase
     .from("applications")
     .update({
-      status: normalizedStatus,
+      status,
       updatedAt: new Date().toISOString(),
     })
     .eq("id", applicationId)
@@ -195,6 +205,22 @@ const updateApplicationStatus = async (
 
   if (error) {
     throw error;
+  }
+
+  // Create notification for applicant
+  if (application.status !== status) {
+    try {
+      await createNotification({
+        userId: application.applicantId,
+        type: "APPLICATION_STATUS",
+        message: `Your application for "${application.jobs.title}" has been updated to ${status}.`,
+      });
+    } catch (notificationError) {
+      console.error(
+        "Failed to create notification:",
+        notificationError
+      );
+    }
   }
 
   return data;
