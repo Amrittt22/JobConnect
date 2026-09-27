@@ -3,6 +3,7 @@ import { useDispatch } from "react-redux";
 
 import { supabase } from "../services/supabase";
 import { getMe } from "../services/authServices";
+import { connectSocket, disconnectSocket } from "../socket";
 
 import {
   setSession,
@@ -26,12 +27,14 @@ function AuthInitializer({ children }) {
         if (!mounted) return;
 
         if (!session) {
+          disconnectSocket();
           dispatch(logout());
           dispatch(setLoading(false));
           return;
         }
 
         dispatch(setSession(session));
+        connectSocket(session.access_token);
 
         const data = await getMe(session.access_token);
 
@@ -59,12 +62,14 @@ function AuthInitializer({ children }) {
       if (!mounted) return;
 
       if (!session) {
+        disconnectSocket();
         dispatch(logout());
         dispatch(setLoading(false));
         return;
       }
 
       dispatch(setSession(session));
+      connectSocket(session.access_token);
 
       try {
         const data = await getMe(session.access_token);
@@ -80,6 +85,7 @@ function AuthInitializer({ children }) {
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      disconnectSocket();
     };
   }, [dispatch]);
 

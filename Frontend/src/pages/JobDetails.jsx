@@ -21,6 +21,9 @@ function JobDetails() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
 
+  const [startingChat, setStartingChat] = useState(false);
+  const [chatMessage, setChatMessage] = useState("");
+
   // Fetch job details
   useEffect(() => {
     const fetchJob = async () => {
@@ -192,6 +195,43 @@ function JobDetails() {
     }
   };
 
+  // Start or open a conversation with the job recruiter
+  const handleMessageRecruiter = async () => {
+    if (!session) {
+      navigate("/login");
+      return;
+    }
+
+    if (!job?.postedById) {
+      setChatMessage("The recruiter for this job could not be identified.");
+      return;
+    }
+
+    try {
+      setStartingChat(true);
+      setChatMessage("");
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/conversations`,
+        { counterpartId: job.postedById },
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      navigate(`/messages/${response.data.conversation.id}`);
+    } catch (err) {
+      console.error("Failed to start conversation:", err);
+      setChatMessage(
+        err.response?.data?.message || "Failed to start conversation"
+      );
+    } finally {
+      setStartingChat(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
@@ -324,6 +364,14 @@ function JobDetails() {
                 ? "🔖 Saved"
                 : "🔖 Save Job"}
             </button>
+
+            <button
+              onClick={handleMessageRecruiter}
+              disabled={startingChat}
+              className="flex-1 rounded-xl border border-indigo-300 bg-indigo-50 px-6 py-3 font-semibold text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {startingChat ? "Connecting..." : "💬 Message Recruiter"}
+            </button>
           </div>
 
           {/* Application message */}
@@ -337,6 +385,12 @@ function JobDetails() {
           {saveMessage && (
             <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
               {saveMessage}
+            </div>
+          )}
+
+          {chatMessage && (
+            <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+              {chatMessage}
             </div>
           )}
         </div>

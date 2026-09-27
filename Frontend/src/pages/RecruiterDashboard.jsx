@@ -17,7 +17,7 @@ function RecruiterDashboard() {
           Welcome back, {user?.name} 👋
         </p>
 
-        <div className="mt-8 grid gap-6 md:grid-cols-3">
+        <div className="mt-8 grid gap-6 md:grid-cols-4">
           {/* Post Job */}
           <button
             onClick={() => navigate("/recruiter/post-job")}
@@ -57,6 +57,17 @@ function RecruiterDashboard() {
 
             <p className="mt-2 text-sm text-slate-500">
               Manage your active job postings.
+            </p>
+          </button>
+
+          {/* Messages */}
+          <button
+            onClick={() => navigate("/messages")}
+            className="rounded-2xl bg-white p-6 text-left shadow-sm ring-1 ring-slate-200 transition hover:shadow-md hover:ring-slate-300"
+          >
+            <h2 className="font-semibold">Messages</h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Read and reply to candidates.
             </p>
           </button>
         </div>

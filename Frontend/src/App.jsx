@@ -13,11 +13,21 @@ import ManageJobs from "./pages/ManageJobs";
 import EditJob from "./pages/EditJob";
 import JobDetails from "./pages/JobDetails";
 import Applicants from "./pages/Applicants";
+import Messages from "./pages/Messages";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
 
 function App() {
   return (
     <Routes>
+
+      <Route
+        element={
+          <RoleProtectedRoute allowedRoles={["JOBSEEKER", "RECRUITER"]} />
+        }
+      >
+        <Route path="/messages" element={<Messages />} />
+        <Route path="/messages/:conversationId" element={<Messages />} />
+      </Route>
 
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />

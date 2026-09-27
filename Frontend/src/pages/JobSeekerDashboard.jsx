@@ -249,6 +249,13 @@ function JobSeekerDashboard() {
               </span>
             )}
           </button>
+
+          <button
+            onClick={() => navigate("/messages")}
+            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            💬 Messages
+          </button>
         </div>
 
         {/* Search */}

@@ -13,6 +13,7 @@ function Applicants() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingId, setUpdatingId] = useState(null);
+  const [startingChatId, setStartingChatId] = useState(null);
 
   // Fetch applicants
   useEffect(() => {
@@ -106,6 +107,40 @@ function Applicants() {
       );
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const messageApplicant = async (application) => {
+    const applicantId = application.applicantId || application.users?.id;
+
+    if (!applicantId) {
+      setError("Applicant could not be identified.");
+      return;
+    }
+
+    try {
+      setStartingChatId(application.id);
+      setError("");
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/conversations`,
+        { counterpartId: applicantId },
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      navigate(`/messages/${response.data.conversation.id}`);
+    } catch (err) {
+      console.error("Failed to start conversation:", err);
+      setError(
+        err.response?.data?.message ||
+          "Failed to start conversation"
+      );
+    } finally {
+      setStartingChatId(null);
     }
   };
 
@@ -331,6 +366,18 @@ function Applicants() {
                         className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Hire
+                      </button>
+
+                      {/* Message */}
+                      <button
+                        type="button"
+                        onClick={() => messageApplicant(application)}
+                        disabled={startingChatId === application.id}
+                        className="rounded-lg border border-indigo-300 bg-indigo-50 px-5 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {startingChatId === application.id
+                          ? "Connecting..."
+                          : "💬 Message Applicant"}
                       </button>
 
                     </div>
